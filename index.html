@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CORTEX-FORENSICS // Incident Root Cause Analysis Engine</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- Top Telemetry Stream Ticker -->
+    <div class="telemetry-ticker">
+      <div class="telemetry-item">
+        <span class="status-dot red pulse"></span>
+        <span class="text-amber">CORTEX-FORENSICS v4.2</span>
+        <span style="color: var(--text-dim);">|</span>
+        <span>CLUSTER: <strong style="color: var(--text-primary);">prod-us-east-1</strong></span>
+      </div>
+
+      <div class="telemetry-item">
+        <span>INGEST: <strong id="telemetry-ingest-rate" class="text-cyan">12,483 ev/s</strong></span>
+        <span style="color: var(--text-dim);">|</span>
+        <span>DATABASE: <strong id="sqlite-db-status-badge" class="text-lime">SQLite3 (cortex_forensics.db) PERSISTED</strong></span>
+      </div>
+
+      <div class="telemetry-item">
+        <button 
+          class="btn-tech" 
+          style="padding: 2px 8px; font-size: 10px; border-color: var(--border-amber);"
+          onclick="window.app.openCmdPalette()"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          COMMAND PALETTE <span class="text-amber">(Alt+K or /)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Incident Header Component -->
+    <header id="app-header" class="incident-header"></header>
+
+    <!-- Contextual Workspace Navigation Bar -->
+    <div class="workspace-toolbar">
+      <div class="nav-tabs-context">
+        <button class="nav-tab-btn active" onclick="window.app.switchTab('INVESTIGATE')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 16 16 16 12 8"></polygon></svg>
+          INVESTIGATION WORKSPACE
+        </button>
+        <button class="nav-tab-btn" onclick="window.app.switchTab('SERVICES')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          SERVICE GRAPH (15)
+        </button>
+        <button class="nav-tab-btn" onclick="window.app.switchTab('EVENT STREAM')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          LIVE TELEMETRY STREAM
+        </button>
+        <button class="nav-tab-btn" onclick="window.app.switchTab('HISTORY')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          INCIDENT POST-MORTEMS
+        </button>
+      </div>
+
+      <!-- Correlation Window Selector -->
+      <div class="correlation-window-selector">
+        <span>CORRELATION WINDOW:</span>
+        <button class="window-chip" onclick="window.app.setCorrelationWindow('30 sec')">30 sec</button>
+        <button class="window-chip" onclick="window.app.setCorrelationWindow('1 min')">1 min</button>
+        <button class="window-chip active" onclick="window.app.setCorrelationWindow('5 min')">5 min</button>
+        <button class="window-chip" onclick="window.app.setCorrelationWindow('15 min')">15 min</button>
+      </div>
+    </div>
+
+    <!-- Main Workspace Split Layout -->
+    <main class="workspace-main">
+
+      <!-- Left Stage: Visual Centerpiece & Investigation Graphs -->
+      <section class="workspace-left-stage">
+        
+        <!-- Root Cause Confidence Rail -->
+        <div id="root-cause-rail-container" class="forensic-panel"></div>
+
+        <!-- Service Dependency Causality Map -->
+        <div class="forensic-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg class="icon-tag" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              Interactive Service Causality Map
+              <span style="color: var(--text-muted); font-size: 10px; margin-left: 8px;">(Click node to inspect telemetry)</span>
+            </div>
+            <div class="panel-actions font-mono" style="font-size: 10px; color: var(--text-muted);">
+              FLOW: ROOT ➔ PROPAGATION ➔ IMPACT
+            </div>
+          </div>
+
+          <div id="dependency-map-container" class="graph-stage-container"></div>
+          
+          <div class="graph-legend">
+            <div class="legend-item"><span class="status-dot red pulse"></span> Root Cause Candidate</div>
+            <div class="legend-item"><span class="status-dot amber"></span> Degraded Service</div>
+            <div class="legend-item"><span class="status-dot" style="background:#5C6472;"></span> Healthy Service</div>
+            <div class="legend-item" style="color: var(--accent-amber);">➔ Directed Telemetry Vector</div>
+          </div>
+        </div>
+
+        <!-- Event Reduction Funnel -->
+        <div id="reduction-funnel-container" class="forensic-panel"></div>
+
+        <!-- Chronological Timeline -->
+        <div id="timeline-container" class="forensic-panel"></div>
+
+      </section>
+
+      <!-- Right Inspector: AI Narrative, Evidence & Remediation -->
+      <aside class="workspace-right-inspector">
+        
+        <!-- AI Root Cause Explanation Narrative -->
+        <div id="ai-explanation-container" class="inspector-section"></div>
+
+        <!-- Cascading Failure Vector Path -->
+        <div id="cascading-failure-container" class="inspector-section"></div>
+
+        <!-- Contextual Evidence Inspector -->
+        <div id="evidence-panel-container" class="inspector-section"></div>
+
+        <!-- Remediation Suggestions -->
+        <div id="remediation-panel-container" class="inspector-section"></div>
+
+      </aside>
+
+    </main>
+
+  </div>
+
+  <!-- Resolution Modal Root -->
+  <div id="modal-root"></div>
+
+  <!-- Command Palette Root -->
+  <div id="cmd-palette-root"></div>
+
+  <!-- Application Bundle -->
+  <script src="js/bundle.js"></script>
+
+</body>
+</html>
